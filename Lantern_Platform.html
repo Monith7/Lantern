@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lantern Health · Population Depression Intelligence</title>
+<style>
+:root{
+  --bg:#F4F5F8;--card:#FFFFFF;--ink:#1A1E29;--muted:#6B7280;--faint:#9AA1AD;
+  --line:#E8EAF0;--line2:#F1F2F6;--field:#FAFBFC;
+  --plum:#6C5B7B;--plum-d:#52455E;--soft:#EFEAF2;
+  --sage:#5E876B;--sage-bg:#E9F1EB;--amber:#C2912F;--amber-bg:#F8F0DC;--clay:#C0604A;--clay-bg:#F8E7E1;
+  --ai:#5B6CB8;--ai-d:#46569E;--ai-bg:#EBEEF8;
+  --sidebar:#221D2E;--sidebar-mut:#9C93AC;--sidebar-line:#352D44;
+  --shadow:0 1px 2px rgba(20,24,40,.04),0 6px 20px rgba(20,24,40,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.app{display:flex;min-height:100vh}
+
+/* ---------- sidebar ---------- */
+.sidebar{width:236px;background:var(--sidebar);position:fixed;top:0;bottom:0;left:0;display:flex;flex-direction:column;padding:20px 14px;z-index:30}
+.sb-brand{display:flex;align-items:center;gap:10px;padding:6px 8px 18px;border-bottom:1px solid var(--sidebar-line);margin-bottom:14px}
+.sb-logo{width:30px;height:30px;flex:none}
+.sb-name{color:#fff;font-weight:650;font-size:15.5px;letter-spacing:-.01em}.sb-name span{color:#C9A8D8}
+.sb-name .tag{display:block;font-size:10px;color:var(--sidebar-mut);font-weight:500;letter-spacing:.04em;margin-top:1px}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:9px;color:var(--sidebar-mut);font-size:13.5px;font-weight:500;cursor:pointer;margin-bottom:3px;transition:all .14s;border:none;background:none;width:100%;text-align:left;font-family:inherit}
+.nav-item svg{width:17px;height:17px;flex:none}
+.nav-item:hover{background:#2E2740;color:#E5DEEE}
+.nav-item.on{background:var(--plum);color:#fff}
+.nav-sec{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:#6E647E;padding:14px 11px 7px}
+.sb-foot{margin-top:auto;padding:13px 11px 4px;border-top:1px solid var(--sidebar-line)}
+.sb-foot .live{display:inline-flex;align-items:center;gap:7px;font-size:11px;font-weight:600;color:#A9B4E6;margin-bottom:9px}
+.sb-foot .live .dot{width:6px;height:6px;border-radius:50%;background:#7E8FE0;animation:pulse 1.5s infinite}
+.sb-foot .src{font-size:11px;color:var(--sidebar-mut);line-height:1.45}.sb-foot .src b{color:#C2BACF}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ---------- main ---------- */
+.main{margin-left:236px;flex:1;min-width:0}
+.topbar{background:rgba(244,245,248,.85);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:0 34px;height:60px;display:flex;align-items:center;position:sticky;top:0;z-index:20}
+.topbar h2{font-size:15px;font-weight:650;letter-spacing:-.01em}
+.topbar .crumb{color:var(--faint);font-weight:500}
+.topbar .right{margin-left:auto;font-size:12px;color:var(--faint)}
+.content{padding:30px 34px 60px;max-width:1080px}
+.view{display:none;animation:fade .4s ease}.view.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* shared blocks */
+.scan{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--ai);background:var(--ai-bg);padding:6px 13px;border-radius:20px;margin-bottom:14px}
+.scan .dot{width:7px;height:7px;border-radius:50%;background:var(--ai);animation:pulse 1.6s infinite}
+.page-h{font-size:25px;line-height:1.18;letter-spacing:-.02em;font-weight:700;max-width:780px}
+.page-h b{color:var(--clay)}
+.page-sub{color:var(--muted);font-size:14px;margin-top:8px;max-width:740px}
+
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:24px 0}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow)}
+.kpi .lab{font-size:11px;color:var(--muted);font-weight:550;letter-spacing:.02em;text-transform:uppercase}
+.kpi .val{font-size:27px;font-weight:720;letter-spacing:-.02em;margin-top:6px}.kpi .sub{font-size:11.5px;color:var(--faint);margin-top:2px}
+.kpi.alert .val{color:var(--clay)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);margin-bottom:16px}
+.ch{padding:14px 20px;border-bottom:1px solid var(--line2);font-size:12px;font-weight:650;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;gap:8px}
+.ch .pill{margin-left:auto;font-size:10.5px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--faint)}
+.cb{padding:20px}
+.section-h{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:28px 0 6px}
+.section-sub{font-size:13px;color:var(--faint);margin-bottom:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+
+.aibox{background:linear-gradient(180deg,#FBFCFE,#F7F9FD);border:1px solid #DDE3F2}
+.ai-h{display:flex;align-items:center;gap:9px;padding:15px 20px;border-bottom:1px solid #E6EAF5}
+.ai-h .ic{width:24px;height:24px;border-radius:7px;background:var(--ai);color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px}
+.ai-h .t{font-size:13px;font-weight:650}.ai-h .by{margin-left:auto;font-size:11px;color:var(--faint)}
+.ai-body{padding:18px 20px}
+.briefing{font-size:14.5px;line-height:1.7;color:#2a2f3c}
+.briefing.writing::after{content:"▌";color:var(--ai);animation:pulse .8s infinite}
+
+/* discovery ranked list */
+.disc{display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid var(--line2)}
+.disc:first-child{border-top:none}
+.disc .rk{flex:none;width:22px;height:22px;border-radius:6px;background:var(--soft);color:var(--plum-d);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.disc .nm{flex:none;width:200px;font-size:13px}.disc .nm b{font-weight:650}.disc .nm span{color:var(--faint);font-size:11.5px}
+.disc .bar{flex:1;height:18px;background:var(--line2);border-radius:5px;overflow:hidden}
+.disc .bar>span{display:block;height:100%;border-radius:5px;background:linear-gradient(90deg,#C0604A,#D08A4E)}
+.disc .ex{flex:none;width:92px;text-align:right;font-size:12px}.disc .ex b{font-weight:700}.disc .ex span{color:var(--faint);font-size:11px}
+.disc .lift{flex:none;width:46px;text-align:right;font-size:12.5px;font-weight:700;color:var(--clay)}
+
+.xcard .xt{font-size:13px;font-weight:600}.xcard .xt b{color:var(--clay)}
+.xcard .xm{display:flex;gap:16px;margin-top:7px;font-size:12px;color:var(--muted)}.xcard .xm b{color:var(--ink);font-size:14px;font-weight:700}
+
+/* roi */
+.roi-row{display:flex;gap:14px}
+.roi{flex:1;border:1px solid var(--line);border-radius:11px;padding:14px;text-align:center;background:var(--field)}
+.roi.best{border-color:#CADBCE;background:var(--sage-bg)}
+.roi .rn{font-size:23px;font-weight:730;letter-spacing:-.02em}.roi.best .rn{color:var(--sage)}
+.roi .rl{font-size:11.5px;color:var(--muted);margin-top:3px}
+.assume{font-size:11.5px;color:var(--faint);margin-top:12px;font-style:italic}
+
+.pg{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--line2)}.pg:first-child{border-top:none}
+.pg .pic{flex:none;width:30px;height:30px;border-radius:8px;background:var(--sage-bg);color:var(--sage);display:flex;align-items:center;justify-content:center}
+.pg .pn{font-size:13.5px;font-weight:650}.pg .pd{font-size:12px;color:var(--muted);margin-top:1px}
+.pg .pr{font-size:11px;font-weight:700;color:var(--sage);margin-top:3px}.pg .pr span{color:var(--faint);font-weight:600}
+
+/* chips */
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.chip{font-size:12px;background:var(--field);border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:#444b59}.chip b{color:var(--ink)}
+
+/* controls */
+.aud{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:14px}
+.ab{border:1.5px solid var(--line);background:var(--field);border-radius:10px;padding:9px 15px;font-size:13.5px;font-weight:550;font-family:inherit;cursor:pointer;transition:all .15s}
+.ab:hover{border-color:#CFC4D6}.ab.on{background:var(--ai);border-color:var(--ai);color:#fff;box-shadow:0 4px 12px rgba(91,108,184,.28)}
+.gen{width:100%;padding:13px;border:none;border-radius:11px;background:var(--ai);color:#fff;font-weight:650;font-size:14.5px;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px}
+.gen:hover{background:var(--ai-d)}.gen:disabled{opacity:.6;cursor:default}
+.spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.out{min-height:30px}.empty{color:var(--faint);font-size:13px;text-align:center;padding:18px}
+.err{background:#FBF1EC;border:1px solid #EDD6CC;border-radius:10px;padding:12px 15px;font-size:12.5px;color:#8a4a36}.err b{color:#6e3a2a}
+.modelbadge{font-size:11px;color:var(--faint);margin-top:13px;display:flex;align-items:center;gap:6px}.modelbadge b{color:var(--ai)}
+
+/* strategist */
+label{display:block;font-size:12px;color:var(--muted);font-weight:550;margin:14px 0 6px}label:first-child{margin-top:0}
+select,input[type=number]{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:var(--field);font-family:inherit;font-size:13.5px;color:var(--ink);outline:none}
+select:focus,input:focus{border-color:var(--plum);box-shadow:0 0 0 3px var(--soft)}
+.seg-meta{font-size:11.5px;color:var(--faint);margin-top:6px}.seg-meta b{color:var(--clay)}
+.evid{font-size:11.5px;color:var(--sage);margin-top:6px;background:var(--sage-bg);border-radius:7px;padding:7px 10px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:11px}
+.modetog{display:flex;gap:6px;background:var(--field);border:1px solid var(--line);border-radius:9px;padding:3px;margin-bottom:4px}
+.modetog button{flex:1;padding:7px;border:none;background:none;border-radius:7px;font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;color:var(--muted)}
+.modetog button.on{background:#fff;color:var(--plum-d);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.rngval{display:flex;justify-content:space-between;align-items:baseline}.rngval .b{font-size:20px;font-weight:700;color:var(--plum-d)}
+input[type=range]{-webkit-appearance:none;width:100%;height:5px;border-radius:5px;background:var(--line);outline:none;margin:8px 0}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:#fff;border:3px solid var(--plum);cursor:pointer;box-shadow:0 2px 6px rgba(20,24,40,.18)}
+.big-metric{text-align:center;padding:6px 0 14px;border-bottom:1px solid var(--line2);margin-bottom:14px}
+.big-metric .n{font-size:38px;font-weight:740;letter-spacing:-.02em;color:var(--clay)}.big-metric .l{font-size:12.5px;color:var(--muted);margin-top:2px}
+.rgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.rc{background:var(--field);border:1px solid var(--line);border-radius:11px;padding:13px 15px}
+.rc .rn{font-size:22px;font-weight:720;letter-spacing:-.01em}.rc .rl{font-size:11.5px;color:var(--muted);margin-top:2px}.rc.good .rn{color:var(--sage)}
+.eff{margin-top:13px;background:var(--ai-bg);border-radius:10px;padding:12px 14px;font-size:13px;color:#33384a}.eff b{color:var(--ai-d)}
+.proj-note{font-size:11px;color:var(--faint);margin-top:11px;font-style:italic}
+.fin{margin-top:14px;background:linear-gradient(180deg,#F3F7F4,#EFF4F0);border:1px solid #D8E6DC;border-radius:12px;padding:15px 16px;text-align:center}
+.fin .fn{font-size:32px;font-weight:750;letter-spacing:-.02em;color:var(--sage)}
+.fin .fl{font-size:11.5px;color:var(--muted);margin-top:2px;line-height:1.3}
+.fin-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:13px;padding-top:12px;border-top:1px solid #D8E6DC}
+.fin-row .v{font-size:16.5px;font-weight:720;color:var(--ink)}
+.fin-row .k{font-size:10px;color:var(--faint);margin-top:1px}
+.ask{display:flex;gap:8px;margin-top:13px}.ask input{flex:1}
+.ask button{padding:0 16px;border:none;border-radius:9px;background:var(--plum);color:#fff;font-weight:600;font-family:inherit;cursor:pointer;font-size:13px}
+table.cmp{width:100%;border-collapse:collapse;font-size:12.5px}
+table.cmp th{text-align:left;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:var(--faint);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line)}
+table.cmp td{padding:9px 10px;border-bottom:1px solid var(--line2)}
+table.cmp tr.best td{background:var(--sage-bg)}
+table.cmp .tag{font-size:10px;font-weight:700;color:var(--sage);background:#fff;border:1px solid #CADBCE;padding:1px 6px;border-radius:5px}
+table.cmp td .lf{color:var(--clay);font-weight:700}
+
+.note{background:var(--card);border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:10px;padding:15px 18px;font-size:12.5px;color:var(--muted);margin:8px 0 30px}.note b{color:var(--ink)}
+.foot{font-size:11.5px;color:var(--faint);margin-top:6px;line-height:1.5}
+@media(max-width:900px){.sidebar{position:static;width:100%;height:auto;flex-direction:row;flex-wrap:wrap;padding:12px}.sb-brand{border:none;margin:0;padding:6px 8px}.nav-item{width:auto}.nav-sec,.sb-foot{display:none}.main{margin-left:0}.kpis{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}.roi-row{flex-direction:column}.content{padding:22px 18px}}
+/* ask lantern chat */
+.chatlog{display:flex;flex-direction:column;gap:10px;max-height:440px;overflow-y:auto;padding:6px 2px;margin-bottom:14px}
+.msg{max-width:84%;padding:10px 14px;border-radius:13px;font-size:13.5px;line-height:1.5}
+.msg.user{align-self:flex-end;background:var(--ai);color:#fff;border-bottom-right-radius:4px}
+.msg.assistant{align-self:flex-start;background:var(--field);border:1px solid var(--line);color:var(--ink);border-bottom-left-radius:4px}
+.msg.assistant .err{margin:0;background:none;border:none;padding:0}
+.spin.dark{border-color:rgba(91,108,184,.3);border-top-color:var(--ai);display:inline-block;vertical-align:-2px}
+.chatbar{display:flex;gap:9px}
+.chatbar input{flex:1;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:var(--field);font-family:inherit;font-size:13.5px;color:var(--ink);outline:none}
+.chatbar input:focus{border-color:var(--ai);box-shadow:0 0 0 3px var(--ai-bg)}
+.chatbar button{padding:0 20px;border:none;border-radius:11px;background:var(--ai);color:#fff;font-weight:650;font-family:inherit;font-size:14px;cursor:pointer}
+.chatbar button:hover{background:var(--ai-d)}
+.exq{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:14px}
+.exq button{font-size:12px;background:var(--ai-bg);border:1px solid #D7DDF2;color:var(--ai-d);border-radius:8px;padding:7px 11px;font-family:inherit;cursor:pointer;text-align:left}
+.exq button:hover{background:#E1E6F6}
+.nav-badge{margin-left:auto;font-size:9px;font-weight:700;background:var(--ai);color:#fff;padding:1px 6px;border-radius:6px;letter-spacing:.03em}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sb-brand">
+      <svg class="sb-logo" viewBox="0 0 32 32" fill="none" stroke="#C9A8D8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4h8M13 4l-1 3h8l-1-3M11 7h10l1.5 4H9.5L11 7Z" fill="#3A3050"/><rect x="11" y="11" width="10" height="13" rx="2.5" fill="#3A3050"/><path d="M16 14v7M13.5 17.5h5" stroke="#E0A458"/></svg>
+      <div class="sb-name">Lantern<span> Health</span><span class="tag">Depression Intelligence</span></div>
+    </div>
+    <div class="nav-sec">Platform</div>
+    <button class="nav-item on" data-view="overview" onclick="nav('overview')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg>Overview</button>
+    <button class="nav-item" data-view="briefing" onclick="nav('briefing')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg>AI Briefing</button>
+    <button class="nav-item" data-view="strategist" onclick="nav('strategist')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2"/></svg>Strategist</button>
+    <button class="nav-item" data-view="ask" onclick="nav('ask')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Ask Lantern <span class="nav-badge">NEW</span></button>
+    <div class="sb-foot">
+      <div class="live"><span class="dot"></span>Live AI · Claude</div>
+      <div class="src"><b>NHANES 2017–2020</b><br>8,276 adults · PHQ-9<br>Model ROC-AUC 0.82</div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="topbar"><h2><span class="crumb">Lantern&nbsp;/&nbsp;</span><span id="crumb">Overview</span></h2><div class="right">Psychiatric service · demo cohort</div></div>
+    <div class="content">
+
+      <!-- ============ OVERVIEW ============ -->
+      <section class="view on" id="view-overview">
+        <div class="scan"><span class="dot"></span>AI scan complete · 8,276 patients · 11 segment dimensions · &lt; 1 second</div>
+        <h1 class="page-h">Depression burden is concentrated in <b>a handful of identifiable segments</b> — and your scarcest clinical time can be aimed straight at them.</h1>
+        <p class="page-sub">Automated analysis of the full patient panel: ML risk scoring, unsupervised segment discovery, and AI-written insight.</p>
+        <div class="kpis" id="kpis"></div>
+
+        <div class="card aibox"><div class="ai-h"><div class="ic">✦</div><div class="t">AI executive summary</div><div class="by">generated from the analysis</div></div>
+          <div class="ai-body"><p class="briefing" id="ovSummary"></p></div></div>
+
+        <div class="section-h">Automated risk-driver discovery</div>
+        <div class="section-sub">The engine scanned every patient segment and ranked them by population impact — extra depression cases above the 9.3% baseline. No hand-picking; the same scan runs on any dataset.</div>
+        <div class="card"><div class="cb" id="discovery"></div></div>
+
+        <div class="section-h">Highest-impact intersections</div>
+        <div class="section-sub">Where two factors stack, risk compounds — the densest pockets of depression in the population.</div>
+        <div class="grid2" id="intersections"></div>
+
+        <div class="section-h">Resource allocation — the investment case</div>
+        <div class="grid2">
+          <div class="card"><div class="cb"><div style="font-size:14px;font-weight:650;margin-bottom:2px">Cases captured vs effort spent</div>
+            <div style="font-size:12.5px;color:var(--faint);margin-bottom:10px">Patients ranked by AI risk score. Lift over the diagonal (random screening) is the value the model creates.</div>
+            <svg id="gains" viewBox="0 0 360 168" width="100%"></svg></div></div>
+          <div class="card"><div class="cb"><div style="font-size:14px;font-weight:650;margin-bottom:2px">Per 10,000 patients screened</div>
+            <div style="font-size:12.5px;color:var(--faint);margin-bottom:10px">AI triage vs assessing everyone — same case yield, a fraction of the clinician hours.</div>
+            <div class="roi-row" id="roi"></div><div class="assume" id="assume"></div></div></div>
+        </div>
+
+        <div class="section-h">Recommended population programs</div>
+        <div class="card"><div class="cb" id="programs"></div></div>
+
+        <div class="note"><b>How to read this.</b> Every figure is computed from the dataset (NHANES 2017–2020, validated PHQ-9; model ROC-AUC 0.82). "Risk" is <b>current</b> elevated depression risk, not future incidence — forecasting new onset needs longitudinal records (a hospital EHR). The engine is <b>dataset-agnostic</b>: point it at any patient table with the same fields and it re-runs the scan automatically.</div>
+      </section>
+
+      <!-- ============ AI BRIEFING ============ -->
+      <section class="view" id="view-briefing">
+        <div class="scan"><span class="dot"></span>Live generation · Claude</div>
+        <h1 class="page-h">An executive briefing, <b>written by AI on demand</b></h1>
+        <p class="page-sub">The findings are already computed. Pick an audience and Claude writes the briefing live — grounded only in the real numbers, tailored to who's reading.</p>
+
+        <div class="card"><div class="ch">The data the AI is given</div><div class="cb">
+          <div class="chips">
+            <div class="chip"><b>8,276</b> patients</div><div class="chip"><b>9.3%</b> prevalence</div>
+            <div class="chip"><b>767</b> cases</div><div class="chip">top 20% → <b>63%</b> of cases</div>
+            <div class="chip">sleep+food insecure → <b>35%</b> (3.8×)</div>
+          </div>
+          <div style="font-size:12.5px;color:var(--faint)">Largest reservoirs: sleep complaints (+278 cases), frequent daytime sleepiness (+132), very low food security (+117).</div>
+        </div></div>
+
+        <div class="card"><div class="ch">Generate briefing</div><div class="cb">
+          <label style="margin-top:0">Audience</label>
+          <div class="aud" id="aud"></div>
+          <button class="gen" id="genB" onclick="genBriefing()">✦ &nbsp;Write the briefing with AI</button>
+          <div class="out" id="outB" style="margin-top:14px"><div class="empty">Your AI-written briefing will appear here.</div></div>
+          <div class="modelbadge">Generated live by <b>Claude (claude-sonnet-4-6)</b> · grounded in the findings above</div>
+        </div></div>
+        <p class="foot">Live AI runs inside Claude.ai. Opened as a local file, the call can't reach the API — the Overview's summary works offline.</p>
+      </section>
+
+      <!-- ============ STRATEGIST ============ -->
+      <section class="view" id="view-strategist">
+        <div class="scan"><span class="dot"></span>Decision support · Live AI</div>
+        <h1 class="page-h">Lantern Strategist — <b>plan the intervention, not just the report</b></h1>
+        <p class="page-sub">Build a scenario from the real cohort, see projected impact, cost, and net financial return live, compare every segment, then let Claude recommend where to spend first.</p>
+
+        <div class="grid2" style="margin-top:22px">
+          <div class="card"><div class="ch">① Build the scenario</div><div class="cb">
+            <label style="margin-top:0">Plan by</label>
+            <div class="modetog"><button id="mReach" class="on" onclick="setMode('reach')">Reach %</button><button id="mBudget" onclick="setMode('budget')">Budget</button></div>
+            <label>Target segment</label><select id="seg" onchange="onSeg()"></select>
+            <div class="seg-meta" id="segMeta"></div>
+            <label>Intervention program</label><select id="prog" onchange="onProg()"></select>
+            <div class="evid" id="evid"></div>
+            <div id="reachWrap"><label>Reach — share of the segment you can enrol</label>
+              <div class="rngval"><span style="font-size:12px;color:var(--faint)">how many you can realistically engage</span><span class="b" id="reachV">60%</span></div>
+              <input type="range" id="reach" min="10" max="100" step="5" value="60" oninput="render()"></div>
+            <div id="budgetWrap" style="display:none"><label>Total budget ($)</label><input type="number" id="budget" value="250000" min="0" step="10000" oninput="render()">
+              <div class="seg-meta" id="budgetMeta"></div></div>
+            <div class="two"><div><label>Cost / patient ($)</label><input type="number" id="cost" value="200" min="0" step="10" oninput="render()"></div>
+              <div><label>Response rate (%)</label><input type="number" id="resp" value="40" min="0" max="100" step="5" oninput="render()"></div></div>
+            <div class="two"><div><label>Reimbursement / patient ($)</label><input type="number" id="reimb" value="350" min="0" step="10" oninput="render()"></div>
+              <div><label>Value / case improved ($)</label><input type="number" id="value" value="4000" min="0" step="500" oninput="render()"></div></div>
+            <div class="proj-note">Cost, response, reimbursement & downstream value are literature-informed defaults per program — adjust to your hospital's figures. "Value / case improved" is avoided downstream cost (crisis care, readmissions) per case that responds.</div>
+          </div></div>
+
+          <div class="card"><div class="ch">② Projected impact</div><div class="cb">
+            <div class="big-metric"><div class="n" id="mCases">299</div><div class="l">depression cases concentrated in the patients you'd reach</div></div>
+            <div class="rgrid">
+              <div class="rc"><div class="rn" id="mReached">1,421</div><div class="rl">patients reached</div></div>
+              <div class="rc"><div class="rn" id="mCost">$284k</div><div class="rl">program cost</div></div>
+              <div class="rc good"><div class="rn" id="mImproved">120</div><div class="rl">projected cases improved</div></div>
+              <div class="rc"><div class="rn" id="mPer">$2,367</div><div class="rl">cost / case improved</div></div>
+            </div>
+            <div class="fin">
+              <div class="fn" id="mReturn">$—</div>
+              <div class="fl">projected net financial return to the hospital<br>reimbursement + avoided downstream cost − program cost</div>
+              <div class="fin-row">
+                <div><div class="v" id="mRev">$—</div><div class="k">reimbursement revenue</div></div>
+                <div><div class="v" id="mSav">$—</div><div class="k">avoided downstream cost</div></div>
+                <div><div class="v" id="mMult">—×</div><div class="k">return on program spend</div></div>
+              </div>
+            </div>
+            <div class="eff" id="eff"></div>
+            <div class="proj-note">Case counts are real (from the cohort); "improved" applies your response-rate assumption.</div>
+          </div></div>
+        </div>
+
+        <div class="section-h">Segment leaderboard — best return at a glance</div>
+        <div class="section-sub">Every segment with its evidence-matched program, ranked by cost per case improved. The greenest row is your most efficient spend. Net return assumes full-segment reach at each program's default reimbursement and downstream value.</div>
+        <div class="card"><div class="cb" style="padding:8px 12px"><table class="cmp" id="cmp"></table></div></div>
+
+        <div class="card aibox" style="margin-top:16px"><div class="ai-h"><div class="ic">✦</div><div class="t">AI strategist</div><div class="by">reasons live over the real segment data</div></div>
+          <div class="ai-body">
+            <button class="gen" id="genS" onclick="strategize()">✦ &nbsp;Recommend the highest-return allocation</button>
+            <div class="out" id="outS" style="margin-top:14px"><div class="empty">Claude will weigh every segment against your scenario and recommend where to spend first.</div></div>
+            <div class="ask"><input id="askq" placeholder="…or ask anything: “what's the best plan for a $150k budget?”" onkeydown="if(event.key==='Enter')askAI()"><button onclick="askAI()">Ask</button></div>
+            <div class="modelbadge">Reasoned live by <b>Claude (claude-sonnet-4-6)</b></div>
+          </div></div>
+        <p class="foot">The simulator and leaderboard work anywhere; the strategist's reasoning needs the API (run as an artifact in Claude.ai).</p>
+      </section>
+
+      <!-- ============ ASK LANTERN ============ -->
+      <section class="view" id="view-ask">
+        <div class="scan"><span class="dot"></span>Conversational AI · Claude</div>
+        <h1 class="page-h">Ask Lantern — <b>your population-intelligence copilot</b></h1>
+        <p class="page-sub">A natural-language agent that answers questions about the cohort in plain English — reasoning live over the same real findings, with memory across the conversation. No dashboards to hunt through; just ask.</p>
+
+        <div class="card"><div class="ch">What the copilot can see</div><div class="cb">
+          <div class="chips">
+            <div class="chip"><b>8,276</b> patients</div><div class="chip"><b>9.3%</b> prevalence</div>
+            <div class="chip">every <b>segment</b> + intersection</div><div class="chip">the <b>gains curve</b> &amp; ROI</div>
+            <div class="chip">all <b>programs</b> &amp; costs</div>
+          </div>
+          <div style="font-size:12.5px;color:var(--faint)">It answers only from the computed data — exact numbers — and says so plainly when a question falls outside what the data covers.</div>
+        </div></div>
+
+        <div class="card"><div class="ch">Conversation</div><div class="cb">
+          <div class="chatlog" id="chatlog"></div>
+          <div class="exq" id="exq"></div>
+          <div class="chatbar"><input id="chatq" placeholder="Ask about the population… e.g. &ldquo;which segment should we screen first?&rdquo;" onkeydown="if(event.key==='Enter')askLantern()"><button onclick="askLantern()">Ask</button></div>
+          <div class="modelbadge">Answered live by <b>Claude (claude-sonnet-4-6)</b> · grounded in the cohort data</div>
+        </div></div>
+        <p class="foot">Live AI runs inside Claude.ai. Opened as a local file, the call can't reach the API — the Overview works offline.</p>
+      </section>
+
+    </div>
+  </main>
+</div>
+
+<script>
+/* ============================ shared data ============================ */
+const DATA={
+  pop:{N:8276,prev:9.3,cases:767},
+  kpis:[["Patients analysed","8,276","Full panel, in < 1s"],["Depression prevalence","9.3%","767 patients · PHQ-9 ≥ 10"],
+        ["Top driver","Sleep","2,369 pts · 278 excess cases"]],
+  discovery:[["Sleep complaint","Yes · 2,369 pts",21.0,2.27,278],["Daytime sleepiness","Almost always · 671",28.9,3.12,132],
+    ["Food insecurity","Very low · 786",24.2,2.61,117],["Daytime sleepiness","Often · 1,464",17.3,1.86,117],
+    ["Low income","PIR < 1.3 · 2,127",13.4,1.45,89],["Physically inactive","6,156 pts",10.8,1.16,91],
+    ["Separated / widowed","1,774 pts",13.6,1.47,78]],
+  intersections:[["Sleep complaint","food insecurity",35,3.8,590],["Female","frequent daytime sleepiness",24,2.6,1201],
+    ["Diabetes","food insecurity",24,2.6,307],["Diabetes","physical inactivity",15,1.6,1087]],
+  gains:[[0,0],[5,25],[10,40],[15,53],[20,63],[25,70],[30,75],[35,80],[40,84],[45,86],[50,90],[55,93],[60,94],[65,96],[70,97],[75,98],[80,99],[85,99],[90,100],[95,100],[100,100]],
+  programs:[["Sleep pathway","Systematic insomnia screening + CBT-I / sleep referral.","~47% panel reach · the single largest case reservoir","NICE NG222"],
+    ["Social-needs program","Food-security & financial screening with resource linkage.","very-low food security 2.6× risk","AAFP"],
+    ["Collaborative care","Integrated depression management for comorbid patients.","comorbid pockets up to 24% prevalence","ADA · IMPACT"],
+    ["Targeted screening","Concentrate PHQ-9 assessment on the AI-flagged high-risk tiers.","63% of cases in the top 20%","USPSTF"]],
+  segments:{
+    "Sleep complaints":{n:2369,cases:498,rate:21.0,lift:2.27,prog:"Sleep pathway (CBT-I)"},
+    "Frequent daytime sleepiness":{n:2135,cases:447,rate:20.9,lift:2.26,prog:"Sleep pathway (CBT-I)"},
+    "Food insecurity (low/very low)":{n:1751,cases:314,rate:17.9,lift:1.93,prog:"Social-needs program"},
+    "Diabetic patients":{n:1208,cases:166,rate:13.7,lift:1.48,prog:"Collaborative care"},
+    "Low income (PIR<1.3)":{n:2126,cases:285,rate:13.4,lift:1.45,prog:"Social-needs program"},
+    "Unpartnered (sep/wid/div/never)":{n:3705,cases:453,rate:12.2,lift:1.32,prog:"Connection / behavioural activation"},
+  },
+  progDefs:{
+    "Sleep pathway (CBT-I)":{cost:200,resp:40,reimb:350,ev:"CBT-I improves comorbid depression — NICE NG222; meta-analyses"},
+    "Social-needs program":{cost:100,resp:20,reimb:150,ev:"Food & financial resource linkage — AAFP"},
+    "Collaborative care":{cost:300,resp:50,reimb:500,ev:"Collaborative care ≈ doubles depression response — IMPACT trial; Cochrane"},
+    "Connection / behavioural activation":{cost:120,resp:35,reimb:200,ev:"Behavioural activation effective for mild–moderate — NICE; Cochrane"},
+    "Digital CBT (iCBT)":{cost:60,resp:30,reimb:120,ev:"Internet-delivered CBT — scalable, low cost; NICE; Andersson meta-analyses"},
+    "Group CBT":{cost:90,resp:38,reimb:180,ev:"Group cognitive behavioural therapy — cost-efficient; Cochrane"},
+    "Medication management":{cost:250,resp:50,reimb:420,ev:"Pharmacotherapy with monitoring — APA practice guideline"},
+    "Telehealth psychiatry":{cost:180,resp:45,reimb:320,ev:"Remote psychiatric care — expands access; telehealth parity evidence"},
+    "Stepped care":{cost:150,resp:45,reimb:280,ev:"Match treatment intensity to need — IAPT / stepped-care model"},
+  },
+};
+const BASE=DATA.pop.prev;
+const $=id=>document.getElementById(id);
+const money=n=>n>=1000?"$"+(n/1000).toFixed(0)+"k":"$"+n;
+const bigMoney=n=>{const a=Math.abs(n),s=n<0?"−":"";return a>=1e6?s+"$"+(a/1e6).toFixed(a>=1e7?0:1)+"M":a>=1000?s+"$"+Math.round(a/1000)+"k":s+"$"+Math.round(a);};
+
+/* ============================ navigation ============================ */
+const TITLES={overview:"Overview",briefing:"AI Briefing",strategist:"Strategist",ask:"Ask Lantern"};
+function nav(v){
+  document.querySelectorAll(".view").forEach(s=>s.classList.remove("on"));
+  $("view-"+v).classList.add("on");
+  document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("on",b.dataset.view===v));
+  $("crumb").textContent=TITLES[v];
+  window.scrollTo({top:0,behavior:"smooth"});
+}
+
+/* ============================ OVERVIEW render ============================ */
+$("kpis").innerHTML=DATA.kpis.map(k=>`<div class="kpi"><div class="lab">${k[0]}</div><div class="val">${k[1]}</div><div class="sub">${k[2]}</div></div>`).join("");
+$("ovSummary").innerHTML=`Across <b>8,276 patients</b>, <b>9.3%</b> screen positive for clinically significant depression — 767 people — but the burden is far from evenly spread. It pools in a small set of identifiable segments. The largest single reservoir is patients reporting <b>sleep complaints</b> (2,369 patients, 21% depressed — 278 cases above baseline), followed by <b>frequent daytime sleepiness</b> (up to 28.9%) and <b>very low food security</b> (24.2%). Risk compounds at intersections: patients who are <b>both food-insecure and sleep-complaining carry a 35% rate — nearly 4× baseline</b>. Directing assessment at the <b>highest-risk 20% of the panel surfaces 63% of all depression cases</b>, cutting screening workload by ~80% while keeping most of the clinical yield. Three population programs follow from the drivers — a sleep pathway, a social-needs linkage, and collaborative care.`;
+const dmx=Math.max(...DATA.discovery.map(d=>d[4]));
+$("discovery").innerHTML=DATA.discovery.map((d,i)=>`<div class="disc"><div class="rk">${i+1}</div><div class="nm"><b>${d[0]}</b><br><span>${d[1]}</span></div><div class="bar"><span style="width:${d[4]/dmx*100}%"></span></div><div class="ex"><b>+${d[4]}</b> <span>cases</span><br><span style="font-size:10.5px">${d[2]}% rate</span></div><div class="lift">${d[3]}×</div></div>`).join("");
+$("intersections").innerHTML=DATA.intersections.map(x=>`<div class="card xcard" style="margin-bottom:0"><div class="cb"><div class="xt"><b>${x[0]}</b> + <b>${x[1]}</b></div><div class="xm"><div><b>${x[2]}%</b><br>depressed</div><div><b>${x[3]}×</b><br>baseline</div><div><b>${x[4]}</b><br>patients</div></div></div></div>`).join("");
+(function(){const W=360,H=168,pl=30,pb=24,pt=10,pr=10;const x=p=>pl+p/100*(W-pl-pr),y=v=>H-pb-v/100*(H-pb-pt);
+  let g="";[0,25,50,75,100].forEach(v=>{g+=`<line x1="${pl}" x2="${W-pr}" y1="${y(v)}" y2="${y(v)}" stroke="#EEF0F4"/><text x="2" y="${y(v)+3}" font-size="8" fill="#9AA1AD">${v}%</text>`;});
+  const diag=`<line x1="${x(0)}" y1="${y(0)}" x2="${x(100)}" y2="${y(100)}" stroke="#C9CDD6" stroke-dasharray="3 3"/>`;
+  const pts=DATA.gains.map(p=>`${x(p[0])},${y(p[1])}`).join(" ");
+  const mark=`<circle cx="${x(20)}" cy="${y(63)}" r="5" fill="#6C5B7B"/><line x1="${x(20)}" y1="${y(0)}" x2="${x(20)}" y2="${y(63)}" stroke="#6C5B7B" stroke-dasharray="2 2" opacity=".5"/><text x="${x(20)+6}" y="${y(63)-5}" font-size="9.5" font-weight="700" fill="#52455E">top 20% → 63%</text>`;
+  $("gains").innerHTML=`${g}${diag}<polyline points="${pts}" fill="none" stroke="#6C5B7B" stroke-width="2.5"/>${mark}<text x="${W-pr}" y="${H-4}" font-size="8.5" fill="#9AA1AD" text-anchor="end">% of panel assessed →</text><text x="${x(60)}" y="${y(52)}" font-size="8.5" fill="#9AA1AD">random</text>`;
+})();
+const minPer=20,perK=10000,hU=Math.round(perK*minPer/60),h20=Math.round(perK*.2*minPer/60),h50=Math.round(perK*.5*minPer/60);
+$("roi").innerHTML=`<div class="roi"><div class="rn">${hU.toLocaleString()}h</div><div class="rl">Screen everyone<br>(100% of cases)</div></div><div class="roi best"><div class="rn">${h20.toLocaleString()}h</div><div class="rl">AI triage · top 20%<br>(63% of cases) — <b>saves ${(hU-h20).toLocaleString()}h</b></div></div><div class="roi"><div class="rn">${h50.toLocaleString()}h</div><div class="rl">AI triage · top 50%<br>(90% of cases)</div></div>`;
+$("assume").textContent=`Assumes ~${minPer} min clinical time per assessment. ${hU.toLocaleString()} clinician-hours to screen 10,000 → ~${h20.toLocaleString()}h to reach the highest-risk 20% while still finding ~63% of cases (≈80% fewer hours). Scales with panel size and staffing cost.`;
+$("programs").innerHTML=DATA.programs.map(p=>`<div class="pg"><div class="pic">✚</div><div><div class="pn">${p[0]}</div><div class="pd">${p[1]}</div><div class="pr">${p[2]} <span>· ${p[3]}</span></div></div></div>`).join("");
+
+/* ============================ AI BRIEFING ============================ */
+const FINDINGS={patients:8276,prevalence_pct:9.3,cases:767,baseline:"9.3% population depression rate (PHQ-9>=10)",
+  top_drivers:[{factor:"Sleep complaint",n:2369,rate_pct:21.0,lift:2.27,excess_cases:278},{factor:"Frequent daytime sleepiness",n:671,rate_pct:28.9,lift:3.12,excess_cases:132},{factor:"Very low food security",n:786,rate_pct:24.2,lift:2.61,excess_cases:117},{factor:"Low income",n:2127,rate_pct:13.4,lift:1.45,excess_cases:89},{factor:"Separated/widowed",n:1774,rate_pct:13.6,lift:1.47,excess_cases:78}],
+  strongest_intersection:{factors:"sleep complaint + food insecurity",n:590,rate_pct:35,lift:3.8},
+  resource_allocation:{top_20pct_captures_pct:63,top_50pct_captures_pct:90},
+  roi_per_10000:{screen_all_clinician_hours:3333,ai_triage_top20_hours:667,hours_saved:2666,assumption:"~20 min per assessment"}};
+const AUDIENCES={"Hospital board":"the hospital board (strategic direction, outcomes, and the investment opportunity)","Clinical director":"the clinical director (clinical priorities, care pathways, and patient safety)","CFO / finance":"the CFO (efficiency, clinician-hours and cost saved, and return on investment)","Chief operating officer":"the COO (capacity, throughput, staffing load, and operational risk)","Director of nursing":"the director of nursing (care delivery, nursing workload, and where nursing time is best spent)","Population health lead":"the population health lead (cohort management, prevention, and proactive outreach targeting)","Quality & safety":"the quality and safety officer (care gaps, outcome measurement, and clinical risk)","Frontline clinician":"a frontline clinician (practical and concrete — which patients to prioritise for screening, in everyday language)"};
+let audience="Hospital board";
+$("aud").innerHTML=Object.keys(AUDIENCES).map((a,i)=>`<button class="ab${i===0?' on':''}" onclick="pickAud(this,'${a}')">${a}</button>`).join("");
+function pickAud(btn,a){audience=a;document.querySelectorAll('.aud .ab').forEach(b=>b.classList.remove('on'));btn.classList.add('on');}
+async function genBriefing(){
+  const b=$("genB");b.disabled=true;b.innerHTML='<span class="spin"></span> Claude is analysing the findings…';
+  $("outB").innerHTML='<div class="empty">Reasoning over 8,276 patients…</div>';
+  const prompt=`You are a healthcare data analyst writing for ${AUDIENCES[audience]} of a PSYCHIATRIC hospital. Using ONLY the findings JSON below, write a tight 140-180 word executive briefing on the depression burden across this patient population. Open with a one-sentence headline; state where risk concentrates (cite the 2-3 largest driver segments and the strongest intersection with their numbers); close with the resource-allocation opportunity (cases captured by triaging the highest-risk tier, and clinician-hours saved). Be precise with numbers; invent nothing. Plain, confident, non-alarmist. Flowing prose, no bullet lists.\n\nFINDINGS:\n${JSON.stringify(FINDINGS,null,1)}`;
+  try{ typewrite(await callClaude(prompt),"outB"); }catch(e){ showErr(e,"outB"); }
+  finally{ b.disabled=false; b.innerHTML='✦ &nbsp;Regenerate briefing'; }
+}
+
+/* ============================ STRATEGIST ============================ */
+const SEG=DATA.segments, PROG=DATA.progDefs;
+let mode="reach";
+$("seg").innerHTML=Object.keys(SEG).map(s=>`<option>${s}</option>`).join("");
+$("prog").innerHTML=Object.keys(PROG).map(p=>`<option>${p}</option>`).join("");
+function setMode(m){mode=m;$("mReach").classList.toggle("on",m==="reach");$("mBudget").classList.toggle("on",m==="budget");
+  $("reachWrap").style.display=m==="reach"?"block":"none";$("budgetWrap").style.display=m==="budget"?"block":"none";render();}
+function onSeg(){$("prog").value=SEG[$("seg").value].prog;onProg();}
+function onProg(){const d=PROG[$("prog").value];$("cost").value=d.cost;$("resp").value=d.resp;$("reimb").value=d.reimb;render();}
+function render(){
+  const s=SEG[$("seg").value],p=$("prog").value,d=PROG[p];
+  $("evid").textContent=d.ev;
+  $("segMeta").innerHTML=`${s.n.toLocaleString()} patients · <b>${s.cases} depression cases</b> · ${s.rate}% rate · ${s.lift}× baseline`;
+  const cost=+$("cost").value,resp=+$("resp").value;
+  let reached,reachPct;
+  if(mode==="budget"){const B=+$("budget").value;reached=Math.min(s.n,cost>0?Math.floor(B/cost):0);reachPct=Math.round(reached/s.n*100);
+    $("budgetMeta").innerHTML=`Buys <b>${reached.toLocaleString()}</b> enrolments (${reachPct}% of the segment) at ${money(cost)}/patient.`;}
+  else{reachPct=+$("reach").value;$("reachV").textContent=reachPct+"%";reached=Math.round(s.n*reachPct/100);}
+  const casesReached=Math.round(s.cases*reachPct/100);
+  const total=reached*cost, improved=Math.round(casesReached*resp/100), perImproved=improved>0?Math.round(total/improved):0;
+  $("mCases").textContent=casesReached;$("mReached").textContent=reached.toLocaleString();
+  $("mCost").textContent=bigMoney(total);$("mImproved").textContent=improved;$("mPer").textContent=perImproved>0?"$"+perImproved.toLocaleString():"—";
+  const reimb=+$("reimb").value,value=+$("value").value;
+  const revenue=reached*reimb,savings=improved*value,net=revenue+savings-total,mult=total>0?(revenue+savings)/total:0;
+  $("mReturn").textContent=bigMoney(net);$("mReturn").style.color=net>=0?"var(--sage)":"var(--clay)";
+  $("mRev").textContent=bigMoney(revenue);$("mSav").textContent=bigMoney(savings);$("mMult").textContent=mult.toFixed(1)+"×";
+  $("eff").innerHTML=`Targeting this segment finds depression cases <b>${s.lift}× more efficiently</b> than screening the whole panel at random — you reach ${casesReached} cases among ${reached.toLocaleString()} patients, vs the ~${Math.round(reached*BASE/100)} expected by chance.`;
+  renderCmp();
+}
+function renderCmp(){
+  const value=+($("value")?$("value").value:4000);
+  const rows=Object.entries(SEG).map(([name,s])=>{const d=PROG[s.prog];const improved=Math.round(s.cases*d.resp/100);
+    const cost=s.n*d.cost;const per=improved>0?Math.round(cost/improved):0;
+    const net=s.n*(d.reimb||0)+improved*value-cost;
+    return {name,n:s.n,cases:s.cases,lift:s.lift,prog:s.prog,per,net};
+  }).sort((a,b)=>a.per-b.per);
+  const cur=$("seg").value;
+  $("cmp").innerHTML=`<thead><tr><th>Segment</th><th>Patients</th><th>Cases</th><th>Risk</th><th>Program</th><th>Cost / case improved</th><th>Net return</th></tr></thead><tbody>`+
+    rows.map((r,i)=>`<tr class="${i===0?'best':''}"><td><b>${r.name}</b>${r.name===cur?' <span class="tag">selected</span>':''}</td><td>${r.n.toLocaleString()}</td><td>${r.cases}</td><td class="lf">${r.lift}×</td><td style="color:var(--muted)">${r.prog}</td><td><b>$${r.per.toLocaleString()}</b>${i===0?' <span class="tag">best</span>':''}</td><td><b style="color:${r.net>=0?'var(--sage)':'var(--clay)'}">${bigMoney(r.net)}</b></td></tr>`).join("")+`</tbody>`;
+}
+function scenarioContext(){const s=$("seg").value,p=$("prog").value;
+  return {baseline_prevalence_pct:BASE,all_segments:SEG,programs:PROG,
+    current_scenario:{segment:s,program:p,mode:mode,reach_pct:mode==="reach"?+$("reach").value:null,budget:mode==="budget"?+$("budget").value:null,cost_per_patient:+$("cost").value,response_rate_pct:+$("resp").value,reimbursement_per_patient:+$("reimb").value,value_per_case_improved_downstream:+$("value").value}};}
+async function strategize(){
+  const b=$("genS");b.disabled=true;b.innerHTML='<span class="spin"></span> Claude is weighing the options…';
+  $("outS").innerHTML='<div class="empty">Comparing every segment by case concentration and cost…</div>';
+  const prompt=`You are a population mental-health strategist advising a PSYCHIATRIC hospital with limited clinicians and budget. Using ONLY the data below (real cohort of 8,276 patients; numbers exact), recommend where to invest first for the highest depression-care return. Compare 2-3 of the strongest segment+program options by (a) depression cases concentrated in the reachable group, (b) cost per case improved, and (c) projected net financial return to the hospital (reimbursement + avoided downstream cost − program cost), then give one clear recommendation and brief rationale that balances clinical impact and financial return. Reference the user's current scenario. Be specific with numbers; invent nothing. ~150-180 words, flowing prose, non-alarmist, no bullet lists.\n\nDATA:\n${JSON.stringify(scenarioContext(),null,1)}`;
+  try{ typewrite(await callClaude(prompt),"outS"); }catch(e){ showErr(e,"outS"); }
+  finally{ b.disabled=false; b.innerHTML='✦ &nbsp;Re-run recommendation'; }
+}
+async function askAI(){
+  const q=$("askq").value.trim();if(!q)return;$("askq").value="";
+  $("outS").innerHTML='<div class="empty">Thinking…</div>';
+  const prompt=`You are a population mental-health strategist for a psychiatric hospital. Answer the user's question using ONLY this real cohort data; be specific with numbers, invent nothing, ~120 words, prose.\n\nDATA:\n${JSON.stringify(scenarioContext(),null,1)}\n\nQUESTION: ${q}`;
+  try{ typewrite(await callClaude(prompt),"outS"); }catch(e){ showErr(e,"outS"); }
+}
+
+/* ============================ ASK LANTERN (conversational agent) ============================ */
+const CHATCTX={population:FINDINGS,segments:DATA.segments,intersections:DATA.intersections.map(x=>({a:x[0],b:x[1],rate_pct:x[2],lift:x[3],n:x[4]})),gains_curve_pct_panel_vs_pct_cases:DATA.gains,programs:DATA.programs.map(p=>({name:p[0],what:p[1],reach:p[2],guideline:p[3]}))};
+const PREAMBLE="You are Lantern's population-intelligence analyst for a PSYCHIATRIC hospital. Answer the user's questions using ONLY the JSON data provided below, citing exact numbers from it. If the data does not contain the answer, say so plainly instead of guessing or inventing figures. Keep answers concise — roughly 50-110 words — in plain, confident, non-alarmist prose (no bullet lists unless the user asks). \n\nDATA:\n"+JSON.stringify(CHATCTX);
+let chatHistory=[];
+const EXAMPLES=["Which single segment should we screen first, and why?","How many depression cases sit among diabetic patients?","If we can only screen the top 20%, how many cases do we catch?","Where does risk compound the most?","Which program gives the best cost per case improved?"];
+$("exq").innerHTML=EXAMPLES.map(q=>`<button onclick="askEx(this)">${q}</button>`).join("");
+function askEx(btn){$("chatq").value=btn.textContent;askLantern();}
+function cbub(role,html){const d=document.createElement("div");d.className="msg "+role;d.innerHTML=html;$("chatlog").appendChild(d);$("chatlog").scrollTop=$("chatlog").scrollHeight;return d;}
+function esc(s){return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/\n/g,"<br>");}
+cbub("assistant","Ask me anything about the 8,276-patient population — I answer from the real findings, with exact numbers.");
+async function askLantern(){
+  const q=$("chatq").value.trim();if(!q)return;$("chatq").value="";
+  cbub("user",esc(q));chatHistory.push({role:"user",content:q});
+  const t=cbub("assistant",'<span class="spin dark"></span> reading the data…');
+  const messages=[{role:"user",content:PREAMBLE},{role:"assistant",content:"Understood — I'll answer only from the Lantern data, with exact numbers, and flag anything the data doesn't cover."},...chatHistory];
+  try{const ans=await callClaudeChat(messages);t.innerHTML=esc(ans);chatHistory.push({role:"assistant",content:ans});}
+  catch(e){t.innerHTML='<div class="err"><b>Live AI didn\'t connect.</b> Run this inside Claude.ai — a local file can\'t reach the API.</div>';}
+  $("chatlog").scrollTop=$("chatlog").scrollHeight;
+}
+async function callClaudeChat(messages){
+  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages})});
+  if(!res.ok)throw new Error("API "+res.status);
+  const data=await res.json();const t=(data.content||[]).map(b=>b.type==="text"?b.text:"").join("").trim();
+  if(!t)throw new Error("empty");return t;
+}
+
+/* ============================ shared AI helpers ============================ */
+async function callClaude(prompt){
+  const res=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:1000,messages:[{role:"user",content:prompt}]})});
+  if(!res.ok) throw new Error("API "+res.status);
+  const data=await res.json();const t=(data.content||[]).map(b=>b.type==="text"?b.text:"").join("").trim();
+  if(!t) throw new Error("empty"); return t;
+}
+function showErr(e,id){$(id).innerHTML=`<div class="err"><b>Live AI didn't connect.</b> Run this inside Claude.ai — a local file can't reach the API. <span style="color:#9a6a55">(${e.message})</span></div>`;}
+function typewrite(text,id){const el=document.createElement("div");el.className="briefing writing";$(id).innerHTML="";$(id).appendChild(el);
+  const w=text.split(/(\s+)/);let i=0;(function step(){if(i<w.length){el.innerHTML+=w[i++];setTimeout(step,16);}else el.classList.remove("writing");})();}
+
+onSeg();
+</script>
+</body>
+</html>
